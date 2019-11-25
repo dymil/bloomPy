@@ -2,17 +2,24 @@
 from math import ceil, floor, exp, log
 class Bloom:
     ''' Implements the basic bloom filter using bytearray and MD5 hashing
-    If we let k be the number of hash functions involved, m the size of the bloom filter, n be the expected number of elemeents coming in, then
+    If k is the number of hashes, m the size of the bloom filter, and n the expected number of elemeents, then
     k = (m/n) ln 2 and m = -(n ln p)/(ln 2)^2 are asymptotically optimal.
     However, as bytearrays are used, m is made divisible by eight, currently pessimistically.
     '''
     
-    def hash(s, seed, m):
-        ''' Compute one hash of at least m bits, returned as a bytes object of whatever length '''
-        return hashlib.md5(s.encode()).digest()
+    def _hash(s, seed, m):
+        ''' Compute one hash of >= m bits (must be constant), returned as a bytes object of whatever length '''
+        return hashlib.md5(s.encode(), seed).digest()
         
-    def khashes(s, k, m):
-        ''' Make k hashes of length m from one string; return as integer list '''
+    def _khashes(s, k, m):
+        ''' Make k hashes of length m from one string; return as integer list
+        This is currently done by computing as many hashes as needed to get k indices.
+        A more-efficient alternative would be using
+        Kirsch, A. and Mitzenmacher, M. (2008), Less hashing, same performance: Building a better Bloom filter.
+        Random Struct. Alg., 33: 187-218. doi:10.1002/rsa.20208'''
+        hashes = [_hash(s, 0)]
+        hashlen = len(hashes[0]) << 3
+        hashes += []
         
         
     def __init__(self, n, p):
