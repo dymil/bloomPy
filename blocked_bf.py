@@ -26,7 +26,6 @@ class BlockedBloom(Bloom):
 
     def _hash1(self, s, b):
         ''' Returns an index in the range 0..b '''
-##        hashBytes = self._hash(s, self.seeds[-1])
         return self._hash(s, self.seeds[-1]) % b
 
     def insert(self, s):
