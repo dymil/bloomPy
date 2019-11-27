@@ -9,7 +9,7 @@ def query(query_set, bf, res):
 
 def runTrial(query_set, bf, bbf):
     fprs = []
-    number = 20
+    number = 1
     timeBF = timeit.timeit('query(query_set, bf, fprs)', setup="from __main__ import query", globals=locals(), number=number) / number
     fprBF = fprs[0]
 
@@ -37,13 +37,13 @@ with open('results.csv', 'w', newline='') as csvfile:
                     'Blocked seen time', 'Blocked seen FPR'])
     writer.writeheader()
     
-    for trial in range(10):
+    for trial in range(300):
         # first half is in, second is out
         in_set = random.sample(lines, random.randint(1000, N >> 1))
         fpr = random.uniform(0.01, 0.25)
         bf = Bloom.build(len(in_set), fpr)
         bbf = BlockedBloom.build(len(in_set), fpr)
-        print("built!")
+        print("built!", len(in_set), fpr)
         for s in in_set:
             bf.insert(s)
             bbf.insert(s)
@@ -55,8 +55,8 @@ with open('results.csv', 'w', newline='') as csvfile:
         writer.writerow({
             'N':len(in_set), 'FPR':fpr,
             'Basic unseen time':unseen[0], 'Basic unseen FPR':unseen[1],
-            'Basic half-seen time':half_seen[0], 'Basic half-seen FPR':half_seen[1]/2,
+            'Basic half-seen time':half_seen[0], 'Basic half-seen FPR':half_seen[1] - 0.5,
             'Basic seen time':seen[0], 'Basic seen FPR':1-seen[1],
             'Blocked unseen time':unseen[2], 'Blocked unseen FPR':unseen[3],
-            'Blocked half-seen time':half_seen[2], 'Blocked half-seen FPR':half_seen[3]/2,
+            'Blocked half-seen time':half_seen[2], 'Blocked half-seen FPR':half_seen[3] - 0.5,
             'Blocked seen time':seen[2], 'Blocked seen FPR':1-seen[3]})
