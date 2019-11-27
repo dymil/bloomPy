@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 from bloompy import Bloom
-import random, sys
+import random, sys, hashlib
 from math import ceil, log, floor, exp
 from functools import reduce
 
@@ -11,8 +11,8 @@ class BlockedBloom(Bloom):
         ''' Note that k is the number of hash functions after using one '''
         self.k = k
         self.arrs = [Bloom(k, nBytes) for i in range(b)]
-        self.seeds = [1 + random.getrandbits(127) for i in range(k + 1)]
-        self.seeds = [seed.to_bytes(ceil(log(seed, 256)), sys.byteorder) for seed in self.seeds]
+        self.seeds = [1 + random.getrandbits(127) for i in range(1 + ceil((k * nBytes << 3)/Bloom._hashLen()))]
+        #self.seeds = [seed.to_bytes(ceil(seed.bit_length()), sys.byteorder) for seed in self.seeds]
 
     @classmethod
     def build(cls, n, p):

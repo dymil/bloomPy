@@ -3,6 +3,7 @@ from math import ceil, floor, exp, log
 from functools import reduce
 from operator import add
 import hashlib, sys, random
+from spooky import hash128
 
 class Bloom:
     ''' Implements the basic bloom filter using bytearray and BLAKE hashing
@@ -10,12 +11,17 @@ class Bloom:
     k = (m/n) ln 2 and m = -(n ln p)/(ln 2)^2 are asymptotically optimal.
     However, as bytearrays are used, m is made divisible by eight, currently pessimistically.
     '''
+    @classmethod
+    def _hashLen(cls):
+        return 128
+    
     def __init__(self, k, nBytes):
         self.k = k
         self.arr = bytearray(nBytes)
         random.seed()
-        self.seeds = [1 + random.getrandbits(hashlib.blake2b.PERSON_SIZE - 1) for i in range(k)]
-        self.seeds = [seed.to_bytes(ceil(log(seed, 256)), sys.byteorder) for seed in self.seeds]
+        self.seeds = [1 + random.getrandbits(127) for i in range(ceil((k * nBytes << 3)/Bloom._hashLen()))]
+        # spookyhash128 takes as many 128 bits of seed
+        #self.seeds = [seed.to_bytes(ceil(seed.bit_length() / 8), sys.byteorder) for seed in self.seeds]
 
     @classmethod
     def build(cls, n, p):
@@ -28,13 +34,10 @@ class Bloom:
         return Bloom(k, m >> 3)
 
     @classmethod
-    def _hashLen(cls):
-        return 512
-
-    @classmethod
     def _hash(cls, s, seed):
         ''' Compute one hash, returned as a bytes object of whatever length '''
-        return hashlib.blake2b(s.encode(), person=seed).digest()
+        res = hash128(s, seed)
+        return res.to_bytes(ceil(res.bit_length() / 8), sys.byteorder)
 
     def _khashes(self, s, k, m):
         ''' Make k hashes modulo m from one string; return as integer list
@@ -48,7 +51,6 @@ class Bloom:
                        0) for i in range(k)]
 
     def insert(self, s):
-        print(s)
         for h in self._khashes(s, self.k, len(self.arr) << 3):
             self.arr[h >> 3] |= 1 << h % 8
 
