@@ -14,9 +14,8 @@ class Bloom:
         self.k = k
         self.arr = bytearray(nBytes)
         random.seed()
-        self.seeds = [1 + random.getrandbits(127) for i in range(k)]
+        self.seeds = [1 + random.getrandbits(hashlib.blake2b.PERSON_SIZE - 1) for i in range(k)]
         self.seeds = [seed.to_bytes(ceil(log(seed, 256)), sys.byteorder) for seed in self.seeds]
-        # Blake2b can take 16 bytes of personalization
 
     @classmethod
     def build(cls, n, p):
