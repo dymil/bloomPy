@@ -17,13 +17,12 @@ class BlockedBloom(Bloom):
     @classmethod
     def build(cls, n, p):
         ''' Initialize a bloom filter of n expected elements with FPR = p'''
-        m = ceil(-n * log(p)/(log(2)) ** 2 / 512) << 9
-        assert(m % 512 == 0)
+        m = ceil(-n * log(p) / log(2) ** 2 / 512) << 9
         k1 = floor(m / n * log(2))
         k2 = ceil(m / n * log(2))
         k = k1 if (1 - exp(-k1 * n / m)) ** k1 < (1 - exp(-k2 * n / m)) ** k2 else k2
         
-        return BlockedBloom(max(1, k - 1), 512, ceil(m / 512))
+        return BlockedBloom(max(1, k - 1), 64, m // 512)
 
     def _hash1(self, s, b):
         ''' Returns an index in the range 0..b '''
