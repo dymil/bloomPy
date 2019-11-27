@@ -1,8 +1,7 @@
 #!/usr/bin/env python3
 from math import ceil, floor, exp, log
 from functools import reduce
-from operator import add
-import hashlib, sys, random
+import sys, random
 from spooky import hash128
 
 class Bloom:
@@ -19,14 +18,15 @@ class Bloom:
         self.k = k
         self.arr = bytearray(nBytes)
         random.seed()
-        self.seeds = [1 + random.getrandbits(127) for i in range(ceil((k * nBytes << 3)/Bloom._hashLen()))]
+        self.seeds = [1 + random.getrandbits(127) for i in
+                      range(k * ceil((nBytes << 3)/(1 << Bloom._hashLen())))]
         # spookyhash128 takes as many 128 bits of seed
         #self.seeds = [seed.to_bytes(ceil(seed.bit_length() / 8), sys.byteorder) for seed in self.seeds]
 
     @classmethod
     def build(cls, n, p):
         ''' Initialize a bloom filter of n expected elements with FPR = p'''
-        m = ceil(-n * log(p)/(log(2)) ** 2 / 8) << 3
+        m = ceil(-n * log(p) / (log(2)) ** 2 / 8) << 3
         assert(m % 8 == 0)
         k1 = floor(m / n * log(2))
         k2 = ceil(m / n * log(2))
@@ -45,9 +45,9 @@ class Bloom:
         A more-efficient alternative would be using
         Kirsch, A. and Mitzenmacher, M. (2008), Less hashing, same performance: Building a better Bloom filter.
         Random Struct. Alg., 33: 187-218. doi:10.1002/rsa.20208'''
-        hashBytes = [x for i in range(ceil(m / Bloom._hashLen())) for x in Bloom._hash(s, self.seeds[i])]
-        return [reduce(lambda acc, x: (acc + x) % m,
-                       (hashBytes[i + j] << (j << 3) for j in range(ceil(m / (8 * 256)))),
+        hashBytes = [x for i in range(ceil(m / (1 << Bloom._hashLen()))) for x in Bloom._hash(s, self.seeds[i])]
+        return [reduce(lambda acc, x: (acc + x % m) % m,
+                       (hashBytes[i + j] << (j << 3) for j in range(ceil(m / (1 << (3 + Bloom._hashLen()))))),
                        0) for i in range(k)]
 
     def insert(self, s):
