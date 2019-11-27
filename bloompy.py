@@ -2,7 +2,7 @@
 from math import ceil, floor, exp, log
 from functools import reduce
 import sys, random
-from spooky import hash128
+from spooky import hash64
 
 class Bloom:
     ''' Implements the basic bloom filter using bytearray and BLAKE hashing
@@ -12,21 +12,21 @@ class Bloom:
     '''
     @classmethod
     def _hashLen(cls):
-        return 128
+        return 64
     
     def __init__(self, k, nBytes):
         self.k = k
         self.arr = bytearray(nBytes)
         random.seed()
-        self.seeds = [1 + random.getrandbits(127) for i in
-                      range(k * ceil((nBytes << 3)/(1 << Bloom._hashLen())))]
-        # spookyhash128 takes as many 128 bits of seed
+        self.seeds = [1 + random.getrandbits(63) for i in range(k)]
+                      #range(k * ceil((nBytes << 3)/(1 << Bloom._hashLen())))]
+        # spookyhash64 takes as many 64 bits of seed
         #self.seeds = [seed.to_bytes(ceil(seed.bit_length() / 8), sys.byteorder) for seed in self.seeds]
 
     @classmethod
     def build(cls, n, p):
         ''' Initialize a bloom filter of n expected elements with FPR = p'''
-        m = ceil(-n * log(p) / (log(2)) ** 2 / 8) << 3
+        m = ceil(-n * log(p) / log(2) ** 2 / 8) << 3
         assert(m % 8 == 0)
         k1 = floor(m / n * log(2))
         k2 = ceil(m / n * log(2))
@@ -36,8 +36,8 @@ class Bloom:
     @classmethod
     def _hash(cls, s, seed):
         ''' Compute one hash, returned as a bytes object of whatever length '''
-        res = hash128(s, seed)
-        return res.to_bytes(ceil(res.bit_length() / 8), sys.byteorder)
+        res = hash64(s, seed)
+        return res#.to_bytes(ceil(res.bit_length() / 8), sys.byteorder)
 
     def _khashes(self, s, k, m):
         ''' Make k hashes modulo m from one string; return as integer list
@@ -45,17 +45,15 @@ class Bloom:
         A more-efficient alternative would be using
         Kirsch, A. and Mitzenmacher, M. (2008), Less hashing, same performance: Building a better Bloom filter.
         Random Struct. Alg., 33: 187-218. doi:10.1002/rsa.20208'''
-        hashBytes = [x for i in range(ceil(m / (1 << Bloom._hashLen()))) for x in Bloom._hash(s, self.seeds[i])]
-        return [reduce(lambda acc, x: (acc + x % m) % m,
-                       (hashBytes[i + j] << (j << 3) for j in range(ceil(m / (1 << (3 + Bloom._hashLen()))))),
-                       0) for i in range(k)]
-
+        return [self._hash(s, self.seeds[i]) % m for i in range(k)]
+        #return [int.from_bytes(self._hash(s, self.seeds[i]), sys.byteorder) % m for i in range(k)]
+        
     def insert(self, s):
         for h in self._khashes(s, self.k, len(self.arr) << 3):
             self.arr[h >> 3] |= 1 << h % 8
 
     def query(self, s):
-        return all((self.arr[h // 8] and 1 << h % 8 for h in self._khashes(s, self.k, len(self.arr) << 3)))
+        return all((self.arr[h >> 3] & (1 << h % 8) for h in self._khashes(s, self.k, len(self.arr) << 3)))
 
 if __name__ == "__main__":
     import pickle, argparse
