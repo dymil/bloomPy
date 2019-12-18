@@ -47,7 +47,7 @@ with open('results.csv', 'w', newline='') as csvfile:
         fpr = random.uniform(0.01, 0.25)
         bf = Bloom.build(len(in_set), fpr)
         bbf = BlockedBloom.build(len(in_set), fpr)
-        print("built!", len(in_set), fpr)
+        print("built!", trial, len(in_set), fpr)
         for s in in_set:
             bf.insert(s)
             bbf.insert(s)

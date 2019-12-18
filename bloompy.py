@@ -37,17 +37,16 @@ class Bloom:
     def _hash(cls, s, seed):
         ''' Compute one hash, returned as a bytes object of whatever length '''
         res = hash64(s, seed)
-        return res#.to_bytes(ceil(res.bit_length() / 8), sys.byteorder)
+        return res
 
     def _khashes(self, s, k, m):
         ''' Make k hashes modulo m from one string; return as integer list
-        This is currently done by computing as many hashes as needed to get k indices.
+        This is currently done by computing k separate hash functions.
         A more-efficient alternative would be using
         Kirsch, A. and Mitzenmacher, M. (2008), Less hashing, same performance: Building a better Bloom filter.
         Random Struct. Alg., 33: 187-218. doi:10.1002/rsa.20208'''
-        return [self._hash(s, self.seeds[i]) % m for i in range(k)]
-        #return [int.from_bytes(self._hash(s, self.seeds[i]), sys.byteorder) % m for i in range(k)]
-        
+        return (self._hash(s, self.seeds[i]) % m for i in range(k))
+
     def insert(self, s):
         for h in self._khashes(s, self.k, len(self.arr) << 3):
             self.arr[h >> 3] |= 1 << h % 8
